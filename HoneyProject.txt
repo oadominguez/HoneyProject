@@ -1,0 +1,44 @@
+###############################  SSDP (Simple Service Discovery Protocol) #####################################################
+http://es.wikipedia.org/wiki/SSDP
+http://search.cpan.org/dist/Net-SSDP/lib/Net/SSDP.pm
+http://hp.vector.co.jp/authors/VA008536/script/cocoon/ssdp_discover.txt
+http://wiki.wireshark.org/SampleCaptures?action=AttachFile&do=get&target=Public_nic  ==> Ejemplo de captura
+http://tools.ietf.org/html/draft-cai-ssdp-v1-03#page-4   ==> RFC
+
+###############################  NetBIOS (Simple Service Discovery Protocol) ##################################################
+http://search.cpan.org/dist/Net-NBName/lib/Net/NBName.pm#Querying_NetBIOS_Names
+http://tools.ietf.org/html/rfc1002  ==> RFC 
+http://www.unixwiz.net/tools/nbtscan.html
+http://wiki.wireshark.org/NetBIOS/NBNS ==> Ejemplo de captura
+
+###############################  SNMP (Simple Network Management Protocol) ####################################################
+http://es.wikipedia.org/wiki/Simple_Network_Management_Protocol
+http://www.ietf.org/rfc/rfc1157.txt ==> RFC
+http://wiki.wireshark.org/SNMP
+http://wiki.wireshark.org/SampleCaptures#SNMP ==> Ejemplo de Captura
+http://search.cpan.org/~dtown/Net-SNMP-v6.0.1/lib/Net/SNMP.pm
+http://www.net-snmp.org/docs/perl-SNMP-README.html
+https://metacpan.org/pod/Net::SNMPTrapd
+http://www.net-snmp.org/wiki/index.php/Tut:Extending_snmpd_using_perl
+http://docstore.mik.ua/orelly/perl/sysadmin/ch10_03.htm
+
+###############################  NTP (Network Time Protocol) ####################################################
+http://es.wikipedia.org/wiki/Network_Time_Protocol
+http://tools.ietf.org/html/rfc958 ==> RFC
+http://www.perlmonks.org/bare/?node_id=120609
+http://www.abnormal.com/~thogard/ntp/ntpdate.pl
+http://search.cpan.org/~willmojg/Net-NTP-1.2/NTP.pm
+http://wiki.wireshark.org/NTP  ==> Ejemplo de Captura
+http://wiki.wireshark.org/SampleCaptures?action=AttachFile&do=get&target=NTP_sync.pcap ==> Ejemplo de Captura
+
+###############################  DNS (Domain Name System) ####################################################
+
+
+
+
+
+
+
+
+
+
