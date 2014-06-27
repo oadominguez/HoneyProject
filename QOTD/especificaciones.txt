@@ -1,0 +1,6 @@
+QOTD -> Protocolo de envio/recepcion de una cita cualquiera
+Trabaja sobre puerto 17
+Cuando recibe una peticion responde con una cita cualquiera, la cual como maximo 512 caracteres
+El contenido de la peticion es ignorado
+Solo responde un datagrama con otro datagrama -> Respuesta uno a uno
+

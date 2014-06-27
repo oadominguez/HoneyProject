@@ -1,0 +1,10 @@
+CHARGEN -> Protocolo de prueba de envio/recepcion
+Trabaja sobre puerto 19
+Cuando recibe una peticion responde con un numero aleatorio de caracteres, entre 0 y 512
+El contenido de la peticion es ignorado
+Solo responde un datagrama con otro datagrama -> Respuesta uno a uno
+
+Patron popular:
+!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|} ~
+
+Aunque se puede utilizar un patron cualquiera
