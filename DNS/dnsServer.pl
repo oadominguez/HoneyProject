@@ -1,36 +1,29 @@
-#!/usr/bin/perl
-
+#!/usr/bin/perl -w
 use strict;
-use warnings;
-use Net::DNS::Nameserver;
+use IO::Socket::INET;
 
-sub reply_handler 
+my $dnsIp='127.0.0.1';
+my $genericPort=53;
+my $genericSocket;
+my $clientAddr;
+my $clientPort;
+print "Creando DNS Socket...[+] \n";
+# Creamos el Socket
+$genericSocket = IO::Socket::INET->new(LocalAddr => $dnsIp,
+																			 LocalPort => $genericPort,
+																				    Type => SOCK_DGRAM,
+																				   Proto => 'udp') or die "No se pudo crear el socket UDP $! \n";
+print "UDP Socket Creado...[+] \n";
+print "Servidor a la escucha en UDP bajo puerto $genericPort\n";
+while(1)
 {
-	my ($qname, $qclass, $qtype, $peerhost,$query,$conn) = @_;
-	my ($rcode, @ans, @auth, @add);
-	print "Received query from $peerhost to ". $conn->{sockhost}. "\n";
-	$query->print;
-	if ($qtype eq "A" && $qname eq "foo.example.com" ) 
-	{
-		my ($ttl, $rdata) = (3600, "10.1.2.3");
-		my $rr = new Net::DNS::RR("$qname $ttl $qclass $qtype $rdata");
-		push @ans, $rr;
-		$rcode = "NOERROR";
-	}
-	elsif($qname eq "foo.example.com") 
-	{
-		$rcode = "NOERROR";
-	}
-	else
-	{
-				$rcode = "NXDOMAIN";
-	}
-# mark the answer as authoritive (by setting the 'aa' flag
-	return ($rcode, \@ans, \@auth, \@add, { aa => 1 });
+	my $dataRcv ="";
+	$genericSocket->recv($dataRcv,2048);
+	my $dataHex = $dataRcv;
+	$dataHex =~ s/(.)/sprintf("%02x",ord($1))/eg;
+	$clientAddr = $genericSocket->peerhost();
+	$clientPort = $genericSocket->peerport();
+	print "\n $clientAddr : $clientPort dice: $dataRcv \n";
+	print "RAW INPUT: $dataHex";
 }
-
-my $ns = new Net::DNS::Nameserver( LocalPort    => 5353,
-																	 ReplyHandler => \&reply_handler,
-																	 Verbose      => 1 ) or die "couldn't create nameserver object\n";
-$ns->main_loop;
-
+$genericSocket->close();

@@ -2,6 +2,7 @@
 use strict;
 use IO::Socket::INET;
 
+my $qotdIp='127.0.0.1';
 my $qotdPort=17;
 my $qotdSocket;
 my $clientAddr;
@@ -11,7 +12,8 @@ my %data = (0 => "Duerme, duerme\n", 1 => "Hola\n", 2 => "Hoy va a llover\n", 3 
 #my $dataSend = "hola";
 print "Creando QOTD Socket...[+] \n";
 # Creamos el Socket
-$qotdSocket = IO::Socket::INET->new(LocalPort => $qotdPort,
+$qotdSocket = IO::Socket::INET->new(LocalAddr => $qotdIp,
+																		LocalPort => $qotdPort,
 																				 Type => SOCK_DGRAM,
 																				Proto => 'udp') or die "No se pudo crear el qotdSocket $! \n";
 print "QOTD Socket Creado...[+] \n";

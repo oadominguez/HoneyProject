@@ -2,6 +2,7 @@
 use strict;
 use IO::Socket::INET;
 
+my $chargenIp='127.0.0.1';
 my $chargenPort=19;
 my $chargenSocket;
 my $clientAddr;
@@ -10,7 +11,8 @@ my $dataSend = '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_
 #my $dataSend = "hola";
 print "Creando Chargen Socket...[+]\n";
 # Creamos el Socket
-$chargenSocket = IO::Socket::INET->new(LocalPort => $chargenPort,
+$chargenSocket = IO::Socket::INET->new(LocalAddr => $chargenIp,
+																			 LocalPort => $chargenPort,
 																						Type => SOCK_DGRAM,
 																					 Proto => 'udp') or die "No se pudo crear el chargenSocket $! \n";
 print "Chargen Socket Creado...[+]\n";
