@@ -3,27 +3,35 @@ use strict;
 use IO::Socket::INET;
 
 my $dnsIp='127.0.0.1';
-my $genericPort=53;
-my $genericSocket;
+my $dnsPort=53;
+my $dnsSocket;
 my $clientAddr;
 my $clientPort;
+
+sub dnsLogic
+{
+	my $dataHex = $_[0];
+	print "EN LOGICA $dataHex \n";
+}
+
 print "Creando DNS Socket...[+] \n";
 # Creamos el Socket
-$genericSocket = IO::Socket::INET->new(LocalAddr => $dnsIp,
-																			 LocalPort => $genericPort,
-																				    Type => SOCK_DGRAM,
-																				   Proto => 'udp') or die "No se pudo crear el socket UDP $! \n";
+$dnsSocket = IO::Socket::INET->new(LocalAddr => $dnsIp,
+																	 LocalPort => $dnsPort,
+																				Type => SOCK_DGRAM,
+																			 Proto => 'udp') or die "No se pudo crear el socket UDP $! \n";
 print "UDP Socket Creado...[+] \n";
-print "Servidor a la escucha en UDP bajo puerto $genericPort\n";
+print "Servidor DNS a la escucha en UDP bajo puerto $dnsPort\n";
 while(1)
 {
 	my $dataRcv ="";
-	$genericSocket->recv($dataRcv,2048);
+	$dnsSocket->recv($dataRcv,2048);
 	my $dataHex = $dataRcv;
 	$dataHex =~ s/(.)/sprintf("%02x",ord($1))/eg;
-	$clientAddr = $genericSocket->peerhost();
-	$clientPort = $genericSocket->peerport();
+	$clientAddr = $dnsSocket->peerhost();
+	$clientPort = $dnsSocket->peerport();
 	print "\n $clientAddr : $clientPort dice: $dataRcv \n";
 	print "RAW INPUT: $dataHex";
+	dnsLogic($dataHex);
 }
-$genericSocket->close();
+$dnsSocket->close();
