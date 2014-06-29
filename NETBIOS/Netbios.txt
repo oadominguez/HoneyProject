@@ -1,0 +1,4 @@
+Basado en la cabecera DNS
+Se necesita enviar un paquete de respuesta para que pueda ser interpretado
+El paquete de respuesta toma como base el paquete de solicitud
+Se utiliza el comando nbtscan IP para hacer pruebas
