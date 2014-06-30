@@ -1,12 +1,29 @@
 #!/usr/bin/perl -w
 use strict;
 use IO::Socket::INET;
+use Time::HiRes qw(usleep);
 
 my $nbIP="127.0.0.1";
 my $nbPort=137;
 my $nbSocket;
 my $clientAddr;
 my $clientPort;
+my @valConfig;
+my $peticiones=0;
+#Leer archivo de configuración
+open(CONFIG,"netbios.conf") or die "No se pudo abrir";
+  while(<CONFIG>){
+		chomp($_);
+		#print "$_\n";
+		if (!($_ =~ m/^#.*/g)){
+			@valConfig=split(',',$_);
+		}
+	}
+close(CONFIG);
+
+#print "@valConfig";
+
+
 print "Creando UDP Socket...[+] \n";
 # Creamos el Socket
 $nbSocket = IO::Socket::INET->new(LocalPort => $nbPort,
@@ -15,6 +32,7 @@ $nbSocket = IO::Socket::INET->new(LocalPort => $nbPort,
 																	Proto => 'udp') or die "No se pudo crear el socket UDP $! \n";
 print "UDP Socket Creado...[+] \n";
 print "Servidor a la escucha en UDP bajo puerto $nbPort\n";
+
 while(1)
 {
 	my $dataRcv ="";
@@ -47,7 +65,7 @@ while(1)
 	$tmp.="009b06";# Data Length and Number of names
 
 	#Nombre del equipo falso (hasta 16 caracteres)
-	my $equipo="HONEY"; 
+	my $equipo=$valConfig[0]; 
 	$equipo=~ s/(.)/sprintf("%02x",ord($1))/eg;
 	my $t1=(length($equipo)/2);
 
@@ -62,6 +80,20 @@ while(1)
 $tmp.="204400574f524b47524f55502020202020201ec400574f524b47524f55502020202020201d440001025f5f4d5342524f5753455f5f0201c400000c2924709200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 	
 	#print "RAW OUTPUT: $tmp\n\n";
-	$nbSocket->send(pack("H*",$tmp));
+	if ($peticiones==0){
+		print "Enviando respuesta...\n\n";
+		$nbSocket->send(pack("H*",$tmp));
+	}
+	elsif($peticiones<10){
+		print "Enviando respuesta despues de $valConfig[$peticiones] microsegundos...\n\n";
+		usleep($valConfig[$peticiones]);
+		$nbSocket->send(pack("H*",$tmp));
+	}
+	else{
+		print "Enviando respuesta despues de $valConfig[10] microsegundos...\n\n";
+		usleep($valConfig[10]);
+		$nbSocket->send(pack("H*",$tmp));
+	}
+	$peticiones++;
 }
 $nbSocket->close();
