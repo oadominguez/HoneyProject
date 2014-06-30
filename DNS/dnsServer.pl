@@ -11,7 +11,6 @@ my $clientPort;
 sub dnsLogic
 {
 	my $dataHex = $_[0];
-	print "EN LOGICA $dataHex \n";
 	my $ID = substr($dataHex,0,4);
 	my $flags = "8580";   ### Respuesta | Autoritativa | Recursiva | No Error |
 	my $numPreg = substr($dataHex,8,4);
@@ -23,48 +22,52 @@ sub dnsLogic
 	my $class = substr($dataQuery,-4,4);
 	my $tamRes;
 	my $dataRes;
-	if($type == "0001")
+	if($type eq "000f") ## Si la peticion es MX
 	{
-		print "PETICION DE TIPO A \n";
-		$tamRes = "0004";
-		$dataRes = sprintf("%02x%02x%02x%02x", rand 0xFF, rand 0xFF, rand 0xFF, rand 0xFF);
-		print "TAMAÑO RESPUESTA $tamRes";
-		print "RESPUESTA $dataRes";
+		my $pref  = "0005"; #Preferencia Estandar
+		$dataRes = "smtp.seguridad.unam.mx";
+		my @dataArray = split(/\./,$dataRes); 
+		my $dataSwap="";
+		foreach my $data (@dataArray) ## Operamos segun QNAME format
+		{
+  		my $tamFrag=sprintf("%02x",length($data));
+  		$dataSwap=$dataSwap.$tamFrag;
+			my $dataHex = $data;
+			$dataHex =~ s/(.)/sprintf("%02x",ord($1))/eg;
+  		$dataSwap=$dataSwap.$dataHex;
+		}
+		$tamRes=sprintf("%04x",(length($dataRes)+3+2)); # + 2 tail + 2 pref
+		my $tail = "c012"; # Cola obligatoria 
+		$dataRes = $pref.$dataSwap.$tail;
 	}
-	elsif($type == "000f")
+	elsif($type eq "0002") ## Peticion NS
 	{
-		print "PETICION DE TIPO MX \n";
-		$tamRes = "0010";	
+		$dataRes = "dns.seguridad.unam.mx";
+		my @dataArray = split(/\./,$dataRes);
+		my $dataSwap="";
+		foreach my $data (@dataArray) ## Se opera segun formato QNAME
+		{
+  		my $tamFrag=sprintf("%02x",length($data));
+  		$dataSwap=$dataSwap.$tamFrag;
+			my $dataHex = $data;
+			$dataHex =~ s/(.)/sprintf("%02x",ord($1))/eg;
+  		$dataSwap=$dataSwap.$dataHex;
+		}
+		$tamRes=sprintf("%04x",(length($dataRes)+3)); # + 2 tail
+		my $tail = "c012";
+		$dataRes = $dataSwap.$tail;
 	}
-	elsif($type == "0002")
+	else  ## Peticion A por defecto
 	{
-		print "PETICION DE TIPO NS \n";
-		$tamRes = "0010";	
+		$dataRes = sprintf("%02x%02x%02x%02x", rand 0xFF, rand 0xFF, rand 0xFF, rand 0xFF); #Random IP
+		$tamRes = sprintf("%04x",(length($dataRes)/2)); ##Tomamos cada dos bytes
 	}
 	my $response = $ID.$flags.$numPreg.$numResp.$numRespAuth.$numRespAddit.$dataQuery;
-	print "ID $ID \n";
-	print "FLAGS $flags \n";
-	print "NUMPREG $numPreg \n";
-	print "NUMRESP $numResp \n";
-	print "NUMRESPAUTH $numRespAuth \n";
-	print "NUMRESPADDIT $numRespAddit \n";
-	print "DATAQUERY $dataQuery \n";
-	print "TYPE $type \n";
-	print "CLASS $class \n";
 	my $pointer = "c00c";
 	my $tipoRes = $type;
 	my $classRes = $class;
 	my $ttl = "00000007"; #Segundos de vida
-	print "POINTER $pointer \n";
-	print "TIPORES $tipoRes \n";
-	print "CLASSRES $classRes \n";
-	print "TTL $ttl \n";
-	print "TAMRES $tamRes \n";
-	print "DATARES $dataRes \n";
 	$response = $response.$pointer.$tipoRes.$classRes.$ttl.$tamRes.$dataRes;
-	print "CRAFT PACKET $response \n";
-	#my $tamRes = "0004";  # A -> '4'
-	#$nbSocket->send(pack("H*",$tmp));
 	return $response;
 }
 
@@ -84,8 +87,8 @@ while(1)
 	$dataHex =~ s/(.)/sprintf("%02x",ord($1))/eg;
 	$clientAddr = $dnsSocket->peerhost();
 	$clientPort = $dnsSocket->peerport();
-	print "\n $clientAddr : $clientPort dice: $dataRcv \n";
-	print "RAW INPUT: $dataHex";
+	#print "\n $clientAddr : $clientPort dice: $dataRcv \n";
+	#print "RAW INPUT: $dataHex";
 	my $response = dnsLogic($dataHex);
 	$dnsSocket->send(pack("H*",$response));
 }
