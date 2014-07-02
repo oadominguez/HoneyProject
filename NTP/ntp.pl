@@ -3,7 +3,7 @@ use strict;
 use IO::Socket::INET;
 use Time::HiRes qw(gettimeofday);
 
-my $ntpIP="192.168.1.20";
+my $ntpIP="192.168.85.139";
 my $ntpPort=123;
 my $ntpSocket;
 my $clientAddr;

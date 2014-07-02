@@ -1,0 +1,41 @@
+Funciona sobre puerto 161, el honeypot debe de emular un agente.
+Para la homogeinizacion del protocolo, se utilizan normas ASN1 (Abstract Syntax Notation One)
+SNMP usa OID (Object Identifier) para especificar el parametro exacto para set/get.
+El OID es una combinacion de 2 valores, el primero es el valor generico, todos los "x." sin contar el ultimo numero.
+El segundo es el valor de instancia, que especifica el numero de la instancia segun el padre.
+Todo SNMP agent tiene un libro, el MiB (Management Information Base) este contiene:
+	-> Nombre
+	-> OID 
+	-> Tipo de dato
+	-> Permisos (r|w)
+	-> Descripcion
+Los OID, deacuerdo con la BER (Basic Encoding Rules), sus primeros dos numeros (x.y) son codificados (40*x)+y 
+Casi siempre, los OID comienzan con 1.3 por lo que la codificacion es 2B.
+Despues de los primeros dos, los numeros siguientes son codificados simplemente como bytes.
+Sin embargo, para numeros mas grandes de lo que se puede representar con un byte (ej. 2680)
+Se sabe que de los 8 bits, se usan 7 para el numero como tal (0-127) 
+El bit mas significativo se utiliza como bandera para expresar si el numero se expande mas del byte.
+Se realiza la fragmentacion del numero en binario y se le pone en el 8° bit si es o no mas grande.
+La decodificacion se realiza quitando los bits de bandera y operando (a*128) + b -> donde a es el numero con la bandera encendida y b no, la operacion se debe realizar en HEXADECIMAL.
+########################################################################################################################
+Un paquete SNMP se encuentra conformado por una secuencia (dato complejo del ASN1) con tres campos mas pequeños.
+	-> Version de SNMP (entero, dato primitivo)
+	-> SNMP community string (cadena, dato primitivo)
+	-> SNMP PDU (get request|set request) (dato complejo, contiene mas capas dentro)
+	{
+		-> Request ID (entero)
+		-> Error (entero)
+		-> Error Index (entero)
+		-> Varbind LIST (Secuencia de dos campos especificos)
+		{
+			-> OID (codificado segun BER)
+			-> Valor del parametro 	(En SET debe ser el mismo tipo de dato especificado en el MiB)
+															(En GET valor en Nulo con tamaño 0x00 | Aqui se pone la respuesta del AGENT)
+		}
+	}
+
+Todas las capas y subcapas deben de respetar el formato: TIPO|TAMAÑO|DATOS
+	
+snmpwalk -v 2c -c paraengaricutirimicuaro 127.0.0.1 1.3.6.1.4.1.2680.1.2.7.3.2.0
+
+
