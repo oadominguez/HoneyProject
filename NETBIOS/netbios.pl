@@ -10,19 +10,60 @@ my $clientAddr;
 my $clientPort;
 my @valConfig;
 my $peticiones=0;
-#Leer archivo de configuración
-open(CONFIG,"netbios.conf") or die "No se pudo abrir";
-  while(<CONFIG>){
-		chomp($_);
-		#print "$_\n";
-		if (!($_ =~ m/^#.*/g)){
-			@valConfig=split(',',$_);
+
+
+sub netbiosLogic{
+	my $dataHex=$_[0];
+	#Leer archivo de configuración
+	open(CONFIG,"netbios.conf") or die "No se pudo abrir";
+	  while(<CONFIG>){
+			chomp($_);
+			#print "$_\n";
+			if (!($_ =~ m/^#.*/g)){
+				@valConfig=split(',',$_);
+			}
 		}
+	close(CONFIG);
+	
+		#Modificación del original para convertirlo en un paquete de respuesta
+	my $i=0;
+	my @hexData=($dataHex =~ m/../g ); #Arreglo de bytes
+	my $tmp='';
+	foreach my $byte (@hexData){
+		#Name Query Response, no error
+		if ($i==2){$tmp.="84";} 
+
+		elsif ($i==3){$tmp.="00";}
+		#Questions
+		elsif ($i==4){$tmp.="00";}
+		elsif ($i==5){$tmp.="00";}
+		#Answer
+		elsif ($i==6){$tmp.="00";}
+		elsif ($i==7){$tmp.="01";}
+		else{$tmp.=$byte;}
+		$i++;
 	}
-close(CONFIG);
+	$tmp.="00000000";# TTL
+	$tmp.="009b06";# Data Length and Number of names
 
-#print "@valConfig";
+	#Nombre del equipo falso (hasta 16 caracteres)
+	my $equipo=$valConfig[0]; 
+	$equipo=~ s/(.)/sprintf("%02x",ord($1))/eg;
+	my $t1=(length($equipo)/2);
 
+	#Se llena con 20 los caracteres faltantes
+	for (my $i=0;$i<15-$t1;$i++){
+		$equipo.="20";
+	}
+	$tmp.=$equipo;# NombreEquipo
+	$tmp.="004400574f524b47524f555020202020202000c400"; #Datos adicionales, Workgroup
+	$tmp.=$equipo;# NombreEquipo
+	#Resto del paquete, incluye worgroup y MAC Address
+	$tmp.="204400574f524b47524f55502020202020201ec400574f524b47524f55502020202020201d440001025f5f4d5342524f5753455f5f0201c400000c2924709200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
+	
+	return $tmp;
+
+}
 
 print "Creando UDP Socket...[+] \n";
 # Creamos el Socket
@@ -43,56 +84,20 @@ while(1)
 	$clientPort = $nbSocket->peerport();
 	#print "\n $clientAddr : $clientPort dice: $dataRcv \n";
 	#print "RAW INPUT: $dataHex\n";
-	
-	#Modificación del original para convertirlo en un paquete de respuesta
-	my $i=0;
-	my @hexData=($dataHex =~ m/../g ); #Arreglo de bytes
-	my $tmp='';
-	foreach my $byte (@hexData){
-		#Name Query Response, no error
-		if ($i==2){$tmp.="84";} 
-		elsif ($i==3){$tmp.="00";}
-		#Questions
-		elsif ($i==4){$tmp.="00";}
-		elsif ($i==5){$tmp.="00";}
-		#Answer
-		elsif ($i==6){$tmp.="00";}
-		elsif ($i==7){$tmp.="01";}
-		else{$tmp.=$byte;}
-		$i++;
-	}
-  $tmp.="00000000";# TTL
-	$tmp.="009b06";# Data Length and Number of names
-
-	#Nombre del equipo falso (hasta 16 caracteres)
-	my $equipo=$valConfig[0]; 
-	$equipo=~ s/(.)/sprintf("%02x",ord($1))/eg;
-	my $t1=(length($equipo)/2);
-
-	#Se llena con 20 los caracteres faltantes
-	for (my $i=0;$i<15-$t1;$i++){
-		$equipo.="20";
-	}
-	$tmp.=$equipo;# NombreEquipo
-	$tmp.="004400574f524b47524f555020202020202000c400"; #Datos adicionales, Workgroup
-	$tmp.=$equipo;# NombreEquipo
-#Resto del paquete, incluye worgroup y MAC Address
-$tmp.="204400574f524b47524f55502020202020201ec400574f524b47524f55502020202020201d440001025f5f4d5342524f5753455f5f0201c400000c2924709200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
-	
-	#print "RAW OUTPUT: $tmp\n\n";
+	my $netbiosData=netbiosLogic($dataHex);
 	if ($peticiones==0){
 		print "Enviando respuesta...\n\n";
-		$nbSocket->send(pack("H*",$tmp));
+		$nbSocket->send(pack("H*",$netbiosData));
 	}
 	elsif($peticiones<10){
 		print "Enviando respuesta despues de $valConfig[$peticiones] microsegundos...\n\n";
 		usleep($valConfig[$peticiones]);
-		$nbSocket->send(pack("H*",$tmp));
+		$nbSocket->send(pack("H*",$netbiosData));
 	}
 	else{
 		print "Enviando respuesta despues de $valConfig[10] microsegundos...\n\n";
 		usleep($valConfig[10]);
-		$nbSocket->send(pack("H*",$tmp));
+		$nbSocket->send(pack("H*",$netbiosData));
 	}
 	$peticiones++;
 }
