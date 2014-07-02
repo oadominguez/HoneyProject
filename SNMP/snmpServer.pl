@@ -12,57 +12,44 @@ sub snmpLogic
 	my $dataHex = $_[0];
 	#my $tam = sprintf("%d",hex(substr($dataHex,6,2)));
 	#print "tamaño $tam \n"
-	my $snmpMsgSize=0;
-	my $snmpMsg="30";  ## secuencia que marca el inicio del paquete
 	#### FALTA CONCATENAR EL TAMAÑO TOTAL #######
 	my $version = substr($dataHex,8,2);
 	my $snmpVersion="0201".$version; ## Concatenamos primera capa: SNMP Version
-	$snmpMsgSize = $snmpMsgSize + (length($snmpVersion)/2); ## agregamos tamaño de primera capa
 	my $commSize = (sprintf("%d",hex(substr($dataHex,12,2)))*2);
 	my $community = substr($dataHex,14,$commSize);
 	my $snmpCommStr ="04".substr($dataHex,12,2).$community;  #Concatenamos segunda capa: SNMP Community String
-	$snmpMsgSize = $snmpMsgSize + (length($snmpCommStr)/2); ## agregamos tamaño de segunda capa
-	my $snmpPDU="a2"; ## Get response de la PDU 
-	my $snmpPDUSize=0;
 	#### CONCATENAR TAMAÑO DE PDU ###
-	$snmpMsgSize = $snmpMsgSize + 2; ## agrega el tamaño de type:PDU y del size:PDU
 	my $requestSize = (sprintf("%d",hex(substr($dataHex,14+$commSize+6,2)))*2); ## tamaño del requestID
 	my $requestID = substr($dataHex,14+$commSize+8,$requestSize); ## se recorre el tamaño de las capas
 	my $snmpRequest = "02".substr($dataHex,14+$commSize+6,2).$requestID;
-	$snmpMsgSize = $snmpMsgSize + (length($snmpRequest)/2); ## agregamos tamaño de RequestID
-	$snmpPDUSize = $snmpPDUSize + (length($snmpRequest)/2); ## agregamos tamaño de RequestID
 	my $snmpError = "020100";
 	my $snmpErrorIndex = "020100";
-	$snmpMsgSize = $snmpMsgSize + (length($snmpError)/2); ## agregamos tamaño del error
-	$snmpPDUSize = $snmpPDUSize + (length($snmpError)/2); ## agregamos tamaño del error 
-	$snmpMsgSize = $snmpMsgSize + (length($snmpErrorIndex)/2); ## agregamos tamaño del error index
-	$snmpPDUSize = $snmpPDUSize + (length($snmpErrorIndex)/2); ## agregamos tamaño del error index
-	#my $snmpVarBindList = "30"; ### Inicia la varbind list
-	#my $snmpVarBindListSize = 0;
-	#my $snmpVarBind = "30";
-	#my $snmpVarBindSize = 0;
-	#$snmpVarBindListSize = $snmpVarBindListSize + 2; 
-	$snmpMsgSize = $snmpMsgSize + 4; ## agrega el tamaño de type:VarBindList & VarBind y sus respectivos size
-	$snmpPDUSize = $snmpPDUSize + 4; ## agrega el tamaño de type:VarBindList & VarBind y sus respectivos size
 	my $oidSize = (sprintf("%d",hex(substr($dataHex,22+$commSize+$requestSize+22,2)))*2); ## tamaño del oid
 	my $oid = substr($dataHex,22+$commSize+$requestSize+24,$oidSize);
 	my $snmpOid = "06".substr($dataHex,44+$commSize+$requestSize,2).$oid;
-	$snmpMsgSize = $snmpMsgSize + (length($snmpOid)/2); ## agregamos tamaño del oid
-	$snmpPDUSize = $snmpPDUSize + (length($snmpOid)/2); ## agregamos tamaño del oid
-	#$snmpVarBindListSize = $snmpVarBindListSize + (length($snmpOid)/2); ## agregamos tamaño del oid
-	#$snmpVarBindSize = $snmpVarBindSize + (length($snmpOid)/2); ## agregamos tamaño del oid
-	##### VALOR, AJUSTARLO AL ARCHIVO DE CONFIGURACION 
+	##### VALOR, AJUSTARLO AL ARCHIVO DE CONFIGURACION ##### 
 	my $value = "0a0b0c0d0e0f";  
 	my $valueSize = sprintf("%02x",(length($value)/2));
 	my $snmpValue = "04".$valueSize.$value; # Respuesta de tipo octect String
-	#$snmpVarBindSize = $snmpVarBindSize + (length($snmpValue)/2); ## agregamos tamaño del oid
-	#my $snmpVarBindSizeHex = sprintf("%02x",$snmpVarBindSize);
 	######### CRAFTING DEL PAQUETE #####################
-	$snmpVarBind=$snmpVarBind.$snmpVarBindSizeHex.$snmpOid.$snmpValue;
-	$snmpVarBindListSize = length($snmpVarBind)/2;
+	my $snmpVarBindSize=0; #Inicializamos el tamaño
+	$snmpVarBindSize = $snmpVarBindSize + (length($snmpOid)/2); ## agregamos tamaño del oid
+	$snmpVarBindSize = $snmpVarBindSize + (length($snmpValue)/2); ## agregamos tamaño del valor
+	my $snmpVarBindSizeHex = sprintf("%02x",$snmpVarBindSize);
+	my $snmpVarBind="30".$snmpVarBindSizeHex.$snmpOid.$snmpValue; ## CAPA de varbind lista
+	my $snmpVarBindListSize = 0; # inicializamos el tamaño
+	$snmpVarBindListSize = $snmpVarBindListSize + (length($snmpVarBind)/2);
 	my $snmpVarBindListSizeHex = sprintf("%02x",$snmpVarBindListSize);
-	$snmpVarBind
-
+	my $snmpVarBindList = "30".$snmpVarBindListSizeHex.$snmpVarBind;  ## CAPA de varbind list lista
+	my $snmpPDUSize=0; ## Inicializamos el tamaño
+	$snmpPDUSize = $snmpPDUSize + (length($snmpRequest)/2) +(length($snmpError)/2);
+	$snmpPDUSize = $snmpPDUSize + (length($snmpErrorIndex)/2) +(length($snmpVarBindList)/2);
+	my $snmpPDUSizeHex = sprintf("%02x",$snmpPDUSize);
+	my $snmpPDU = "a2".$snmpPDUSizeHex.$snmpRequest.$snmpError.$snmpErrorIndex.$snmpVarBindList; # CAPA snmp PDU lista
+	my $snmpMsgSize = 0; #Inicializamos el tamaño 
+	$snmpMsgSize = $snmpMsgSize + (length($snmpVersion)/2) + (length($snmpCommStr)/2) + (length($snmpPDU)/2);
+	my $snmpMsgSizeHex = sprintf("%02x",$snmpMsgSize);
+	my $snmpMsg = "30".$snmpMsgSizeHex.$snmpVersion.$snmpCommStr.$snmpPDU; ### Paquete final construido
 	print "VERSION LAYER: $snmpVersion \n";
 	print "COMMUNITY LAYER: $snmpCommStr \n";
 	print "REQUEST SUBLAYER: $snmpRequest \n";
@@ -70,8 +57,12 @@ sub snmpLogic
 	print "ERROR INDEX SUBLAYER: $snmpErrorIndex \n";
 	print "OID SUBLAYER: $snmpOid \n";
 	print "VALUE SUBLAYER: $snmpValue \n";
-	print "VARBIND LAYER: $snmpVarBind\n";
+	print "VARBIND SUBLAYER: $snmpVarBind\n";
+	print "VARBINDLIST SUBLAYER: $snmpVarBindList\n";
+	print "SNMP PDU LAYER: $snmpPDU \n";
+	print "SNMP PACKET: $snmpMsg \n";
 	print "MSG SIZE: $snmpMsgSize \n";
+	return $snmpMsg;
 }
 print "Creando SNMP Socket...[+] \n";
 # Creamos el Socket
@@ -91,6 +82,7 @@ while(1)
 	$clientPort = $snmpSocket->peerport();
 	print "\n $clientAddr : $clientPort dice: $dataRcv \n";
 	print "RAW INPUT: $dataHex\n";
-	snmpLogic($dataHex);
+	my $response = snmpLogic($dataHex);
+	$snmpSocket->send(pack("H*",$response));
 }
 $snmpSocket->close();
