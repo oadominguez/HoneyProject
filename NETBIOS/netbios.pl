@@ -86,7 +86,6 @@ sub netbiosServer{
 		my $dataHex = $dataRcv;
 		$dataHex =~ s/(.)/sprintf("%02x",ord($1))/eg;
 		$clientAddr = $nbSocket->peerhost();
-		$clientPort = $nbSocket->peerport();
 
 		$peticiones{$clientAddr}++; #Aumenta peticiones por cada ip;
 
