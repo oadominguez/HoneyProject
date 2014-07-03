@@ -264,7 +264,7 @@ sub dnsServer
 	my %peticiones=();
 
 	##Lectura del archivo de configuración para obtener tarpiting
-	open(CONFIG,"ntp.conf") or die "No se pudo abrir";
+	open(CONFIG,"dns.conf") or die "No se pudo abrir";
 	  while(<CONFIG>){
 			chomp($_);
 			if ($_ =~ m/^Tarpiting.*/g){
