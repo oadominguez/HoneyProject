@@ -3,29 +3,13 @@ use strict;
 use IO::Socket::INET;
 use Time::HiRes qw(usleep);
 
-my $nbIP="127.0.0.1";
-my $nbPort=137;
-my $nbSocket;
-my $clientAddr;
-my $clientPort;
-my @valConfig;
-my $peticiones=0;
-
-
 sub netbiosLogic{
-	my $dataHex=$_[0];
+	my $dataHex=shift;
+	my $equipo=shift;
 	#Leer archivo de configuración
-	open(CONFIG,"netbios.conf") or die "No se pudo abrir";
-	  while(<CONFIG>){
-			chomp($_);
-			#print "$_\n";
-			if (!($_ =~ m/^#.*/g)){
-				@valConfig=split(',',$_);
-			}
-		}
-	close(CONFIG);
-	
-		#Modificación del original para convertirlo en un paquete de respuesta
+	chop($equipo);
+	print "Equipo: $equipo\n";
+	#Modificación del original para convertirlo en un paquete de respuesta
 	my $i=0;
 	my @hexData=($dataHex =~ m/../g ); #Arreglo de bytes
 	my $tmp='';
@@ -47,7 +31,6 @@ sub netbiosLogic{
 	$tmp.="009b06";# Data Length and Number of names
 
 	#Nombre del equipo falso (hasta 16 caracteres)
-	my $equipo=$valConfig[0]; 
 	$equipo=~ s/(.)/sprintf("%02x",ord($1))/eg;
 	my $t1=(length($equipo)/2);
 
@@ -59,46 +42,74 @@ sub netbiosLogic{
 	$tmp.="004400574f524b47524f555020202020202000c400"; #Datos adicionales, Workgroup
 	$tmp.=$equipo;# NombreEquipo
 	#Resto del paquete, incluye worgroup y MAC Address
-	$tmp.="204400574f524b47524f55502020202020201ec400574f524b47524f55502020202020201d440001025f5f4d5342524f5753455f5f0201c400000c2924709200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
-	
+	$tmp.="204400574f524b47524f55502020202020201ec400574f524b47524f55502020202020201d440001025f5f4d5342524f5753455f5f0201c400000c2924709200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";	
 	return $tmp;
 
 }
 
-print "Creando UDP Socket...[+] \n";
-# Creamos el Socket
-$nbSocket = IO::Socket::INET->new(LocalPort => $nbPort,
-																	Type => SOCK_DGRAM,
-																	LocalAddr => $nbIP,
-																	Proto => 'udp') or die "No se pudo crear el socket UDP $! \n";
-print "UDP Socket Creado...[+] \n";
-print "Servidor a la escucha en UDP bajo puerto $nbPort\n";
+sub netbiosServer{
+	my $nbIP=$_[0];
+	my $nbPort=137;
+	my $nbSocket;
+	my $clientAddr;
+	my $clientPort;
+	my @times;
+	my %peticiones=();
+	my $nombreEquipo;
 
-while(1)
-{
-	my $dataRcv ="";
-	$nbSocket->recv($dataRcv,2048);
-	my $dataHex = $dataRcv;
-	$dataHex =~ s/(.)/sprintf("%02x",ord($1))/eg;
-	$clientAddr = $nbSocket->peerhost();
-	$clientPort = $nbSocket->peerport();
-	#print "\n $clientAddr : $clientPort dice: $dataRcv \n";
-	#print "RAW INPUT: $dataHex\n";
-	my $netbiosData=netbiosLogic($dataHex);
-	if ($peticiones==0){
-		print "Enviando respuesta...\n\n";
-		$nbSocket->send(pack("H*",$netbiosData));
+	##Lectura del archivo de configuración para obtener nombre de equipo y tarpiting
+	open(CONFIG,"netbios.conf") or die "No se pudo abrir";
+	  while(<CONFIG>){
+			chomp($_);
+			if ($_ =~ m/^Equipo (.*)/g){
+				$nombreEquipo=$1;
+			}
+			if ($_ =~ m/^Tarpiting.*/g){
+				@times=split(' ',$_);
+			}
+		}
+	close(CONFIG);
+	print "$nombreEquipo\nl@times\n";
+	print "Creando UDP Socket...[+] \n";
+	# Creamos el Socket
+	$nbSocket = IO::Socket::INET->new(LocalPort => $nbPort,
+																		Type => SOCK_DGRAM,
+																		LocalAddr => $nbIP,
+																		Proto => 'udp') or die "No se pudo crear el socket UDP $! \n";
+	print "UDP Socket Creado...[+] \n";
+	print "Servidor a la escucha en UDP bajo puerto $nbPort\n";
+
+	while(1)
+	{
+		my $dataRcv ="";
+		$nbSocket->recv($dataRcv,2048);
+		my $dataHex = $dataRcv;
+		$dataHex =~ s/(.)/sprintf("%02x",ord($1))/eg;
+		$clientAddr = $nbSocket->peerhost();
+		$clientPort = $nbSocket->peerport();
+
+		$peticiones{$clientAddr}++; #Aumenta peticiones por cada ip;
+
+
+		my $netbiosData=netbiosLogic($dataHex,$nombreEquipo);
+		if ($peticiones{$clientAddr}==0){
+			print "Enviando respuesta...\n\n";
+			$nbSocket->send(pack("H*",$netbiosData));
+		}
+		elsif($peticiones{$clientAddr}<10){
+			print "Enviando respuesta despues de $times[$peticiones{$clientAddr}] microsegundos...\n\n";
+			usleep($times[$peticiones{$clientAddr}]);
+			$nbSocket->send(pack("H*",$netbiosData));
+		}
+		else{
+			print "Enviando respuesta despues de $times[10] microsegundos...\n\n";
+			usleep($times[10]);
+			$nbSocket->send(pack("H*",$netbiosData));
+		}
+
 	}
-	elsif($peticiones<10){
-		print "Enviando respuesta despues de $valConfig[$peticiones] microsegundos...\n\n";
-		usleep($valConfig[$peticiones]);
-		$nbSocket->send(pack("H*",$netbiosData));
-	}
-	else{
-		print "Enviando respuesta despues de $valConfig[10] microsegundos...\n\n";
-		usleep($valConfig[10]);
-		$nbSocket->send(pack("H*",$netbiosData));
-	}
-	$peticiones++;
+	$nbSocket->close();
 }
-$nbSocket->close();
+
+netbiosServer("127.0.0.1");
+
