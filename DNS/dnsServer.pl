@@ -2,7 +2,7 @@
 use strict;
 use IO::Socket::INET;
 
-my $dnsIp='192.168.85.139';
+my $dnsIp='127.0.0.1';
 my $dnsPort=53;
 my $dnsSocket;
 my $clientAddr;
