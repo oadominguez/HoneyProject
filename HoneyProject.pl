@@ -41,6 +41,22 @@ sub chargenServer
 	my $clientPort;
 	my $dataSend;
 	my @arrayData=dataParser("chargen.conf");
+
+
+	my @times;
+	my %peticiones=();
+
+	##Lectura del archivo de configuración para obtener tarpiting
+	open(CONFIG,"chargen.conf") or die "No se pudo abrir";
+	  while(<CONFIG>){
+			chomp($_);
+			if ($_ =~ m/^Tarpiting.*/g){
+				@times=split(' ',$_);
+			}
+		}
+	close(CONFIG);
+
+
 	if($arrayData[0] ne ""){$dataSend=$arrayData[0];}
 	else		
 	{
@@ -60,7 +76,29 @@ sub chargenServer
 		$chargenSocket->recv($dataRcv,2048);
 		$clientAddr = $chargenSocket->peerhost();
 		$clientPort = $chargenSocket->peerport();
-		while(1){$chargenSocket->send($dataSend);}
+		l
+		$peticiones{$clientAddr}++; #Aumenta peticiones por cada ip;
+
+
+		my $contador=$peticiones{$clientAddr}-1;
+		if ($contador==0){
+			print "Enviando respuesta Chargen...\n\n";
+			while(1){$chargenSocket->send($dataSend);}
+		}
+		elsif($contador<10){
+			print "Enviando respuesta Chargen después de $times[$contador] microsegundos...\n\n";
+			usleep($times[$contador]);
+			while(1){$chargenSocket->send($dataSend);}
+		}
+		else{
+			print "Enviando respuesta Chargen después de $times[10] microsegundos...\n\n";
+			usleep($times[10]);
+			while(1){$chargenSocket->send($dataSend);}
+		}
+
+
+
+		
 	}
 	$chargenSocket->close();
 }
@@ -76,6 +114,22 @@ sub qotdServer
 	my $datos="";
 	my @arrayData = dataParser("qotd.conf");
 	if($arrayData[0] ne ""){$datos=$arrayData[0];}
+
+	my @times;
+	my %peticiones=();
+
+	##Lectura del archivo de configuración para obtener tarpiting
+	open(CONFIG,"qotd.conf") or die "No se pudo abrir";
+	  while(<CONFIG>){
+			chomp($_);
+			if ($_ =~ m/^Tarpiting.*/g){
+				@times=split(' ',$_);
+			}
+		}
+	close(CONFIG);
+
+
+
 	print "Creando QOTD Socket...[+] \n";
 	$qotdSocket = IO::Socket::INET->new(LocalAddr => $qotdIp,
                                     	LocalPort => $qotdPort,
@@ -89,13 +143,45 @@ sub qotdServer
   	$qotdSocket->recv($dataRcv,2048);
   	$clientAddr = $qotdSocket->peerhost();
   	$clientPort = $qotdSocket->peerport();
-  	while(1)
-		{
-			if($datos ne ""){$qotdSocket->send($datos);}
-			else
+		$peticiones{$clientAddr}++; #Aumenta peticiones por cada ip;
+
+		my $contador=$peticiones{$clientAddr}-1;
+		if ($contador==0){
+			print "Enviando respuesta QOTD...\n\n";
+			while(1)
 			{
-  			my $indexQuote = int(rand(4));
-  			$qotdSocket->send($data{$indexQuote});
+				if($datos ne ""){$qotdSocket->send($datos);}
+				else
+				{
+  				my $indexQuote = int(rand(4));
+  				$qotdSocket->send($data{$indexQuote});
+				}
+			}
+		}
+		elsif($contador<10){
+			print "Enviando respuesta QOTD después de $times[$contador] microsegundos...\n\n";
+			usleep($times[$contador]);
+			while(1)
+			{
+				if($datos ne ""){$qotdSocket->send($datos);}
+				else
+				{
+  				my $indexQuote = int(rand(4));
+  				$qotdSocket->send($data{$indexQuote});
+				}
+			}
+		}
+		else{
+			print "Enviando respuesta NTP después de $times[10] microsegundos...\n\n";
+			usleep($times[10]);
+			while(1)
+			{
+				if($datos ne ""){$qotdSocket->send($datos);}
+				else
+				{
+  				my $indexQuote = int(rand(4));
+  				$qotdSocket->send($data{$indexQuote});
+				}
 			}
 		}
 	}
@@ -159,7 +245,7 @@ sub dnsLogic
   my $response = $ID.$flags.$numPreg.$numResp.$numRespAuth.$numRespAddit.$dataQuery;
   my $pointer = "c00c";
   my $tipoRes = $type;
-  my $classRes = $class;
+  my $classRes = $class;l
   my $ttl = "00000007"; #Segundos de vida
   $response = $response.$pointer.$tipoRes.$classRes.$ttl.$tamRes.$dataRes;
   return $response;
@@ -173,6 +259,22 @@ sub dnsServer
 	my $dnsSocket;
 	my $clientAddr;
 	my $clientPort;
+
+	my @times;
+	my %peticiones=();
+
+	##Lectura del archivo de configuración para obtener tarpiting
+	open(CONFIG,"ntp.conf") or die "No se pudo abrir";
+	  while(<CONFIG>){
+			chomp($_);
+			if ($_ =~ m/^Tarpiting.*/g){
+				@times=split(' ',$_);
+			}
+		}
+	close(CONFIG);
+
+
+
 	print "Creando DNS Socket...[+] \n";
 	$dnsSocket = IO::Socket::INET->new(LocalAddr => $dnsIp,
                                    	 LocalPort => $dnsPort,
@@ -189,7 +291,26 @@ sub dnsServer
   	$clientAddr = $dnsSocket->peerhost();
   	$clientPort = $dnsSocket->peerport();
   	my $response = dnsLogic($dataHex);
-  	$dnsSocket->send(pack("H*",$response));
+
+		$peticiones{$clientAddr}++; #Aumenta peticiones por cada ip;
+
+		my $contador=$peticiones{$clientAddr}-1;
+		if ($contador==0){
+			print "Enviando respuesta DNS...\n\n";
+			$dnsSocket->send(pack("H*",$response));
+		}
+		elsif($contador<10){
+			print "Enviando respuesta DNS después de $times[$contador] microsegundos...\n\n";
+			usleep($times[$contador]);
+			$dnsSocket->send(pack("H*",$response));
+		}
+		else{
+			print "Enviando respuesta DNS después de $times[10] microsegundos...\n\n";
+			usleep($times[10]);
+			$dnsSocket->send(pack("H*",$response));
+		}
+
+
 	}
 	$dnsSocket->close();
 }
