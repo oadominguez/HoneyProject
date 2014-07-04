@@ -32,11 +32,3 @@ http://wiki.wireshark.org/NTP  ==> Ejemplo de Captura
 http://wiki.wireshark.org/SampleCaptures?action=AttachFile&do=get&target=NTP_sync.pcap ==> Ejemplo de Captura
 
 ###############################  DNS (Domain Name System) ####################################################
-
-
-
-
-
-
-
-

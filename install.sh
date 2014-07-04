@@ -1,6 +1,9 @@
 #!/bin/bash
-cpan -MCPAN -e 'install POE'
-cpan -MCPAN -e 'install POE::Component::Server::Chargen'
-cpan -MCPAN -e 'install Time::HiRes'
-cpan -MCPAN -e 'install threads'
+echo "Script que instala dependencias mediante CPAN para HoneyProject"
+echo "Instalando dependencias necesarias para HoneyProject"
+sleep 2
+cpan -i POE
+cpan -i Time::HiRes
+cpan -i IO::Socket::INET
+cpan -i Term::ANSIColor
 
