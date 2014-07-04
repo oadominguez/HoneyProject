@@ -1,0 +1,20 @@
+Combee es un Honeypot que simula los siguientes servicios:
+-> CHARGEN
+-> SNMP
+-> SSDP
+-> NETBIOS
+-> QOTD
+-> NTP
+-> DNS
+Posee capacidades multi-hilo y puede iniciar servicios independientes sobre multiples direcciones ip.
+Tambien posee la capacidad de tarpiting para evitar el uso malicioso del HoneyPot.
+Cada servicio posee su propio archivo de configuracion, los cuales se encuentran en el directorio config.
+En este archivo se especifica la direccion o direcciones ip para el servicio, los datos con los cuales el HoneyPot respondera a ciertos estimulos, asi como los microsegundos del tarpiting por peticion.
+Antes de iniciar Combee se recomienda iniciar el script "install.sh" el cual resolvera mediante CPAN las dependencias que necesita este proyecto.
+Combee se encuentra escrito en su totalidad en Perl y es un Proyecto del UNAM-CERT.
+
+Desarrolladores:
+	Ricardo Andres Carmona Dominguez
+	Omar Ali Dominguez Cabañas
+
+** Este README no tiene acentos por compatibilidad **
