@@ -1,7 +1,6 @@
 #!/bin/bash
-cpan POE
-cpan POE::Component::Server::Chargen
-cpan Time::HiRes
-apt-get install ntpdate
-apt-get install nbtscan
+cpan -MCPAN -e 'install POE'
+cpan -MCPAN -e 'install POE::Component::Server::Chargen'
+cpan -MCPAN -e 'install Time::HiRes'
+cpan -MCPAN -e 'install threads'
 
