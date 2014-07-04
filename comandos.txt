@@ -1,0 +1,9 @@
+NETBIOS
+nbtscan IP
+
+NTP
+ntpdate -u IP
+
+SSDP
+nmap -sU -p 1900 --script=upnp-info --reason <IP>
+
