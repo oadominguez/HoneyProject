@@ -108,9 +108,9 @@ sub qotdServer
 	my $clientAddr;
 	my $clientPort;
 	my %data = (0 => "Duerme, duerme\n", 1 => "Hola\n", 2 => "Hoy va a llover\n", 3 => "Hello\n");
-	my $datos="";
+	my @datos;
 	my @arrayData = dataParser("qotd.conf");
-	if($arrayData[0] ne ""){$datos=$arrayData[0];}
+	if($arrayData[0] ne ""){@datos=@arrayData; print "DATOS ARRAY: @arrayData\n";}
 
 	my @times;
 	my %peticiones=();
@@ -141,45 +141,48 @@ sub qotdServer
   	$clientAddr = $qotdSocket->peerhost();
   	$clientPort = $qotdSocket->peerport();
 		$peticiones{$clientAddr}++; #Aumenta peticiones por cada ip;
-
 		my $contador=$peticiones{$clientAddr}-1;
 		if ($contador==0){
 			print "Enviando respuesta QOTD...\n\n";
-			while(1)
-			{
-				if($datos ne ""){$qotdSocket->send($datos);}
+			#while(1)
+			#{
+				if(@datos){$qotdSocket->send($datos[int(rand(scalar @datos))]);}
 				else
 				{
   				my $indexQuote = int(rand(4));
   				$qotdSocket->send($data{$indexQuote});
 				}
-			}
+			#}
 		}
 		elsif($contador<10){
 			print "Enviando respuesta QOTD después de $times[$contador] microsegundos...\n\n";
 			usleep($times[$contador]);
-			while(1)
-			{
-				if($datos ne ""){$qotdSocket->send($datos);}
+			#while(1)
+			#{
+				if(@datos){$qotdSocket->send($datos[int(rand(scalar @datos))]);}
+				#f(@datos){$qotdSocket->send($datos[2]);}
+			 #if($datos ne ""){$qotdSocket->send($datos);}
 				else
 				{
   				my $indexQuote = int(rand(4));
   				$qotdSocket->send($data{$indexQuote});
 				}
-			}
+			#}
 		}
 		else{
-			print "Enviando respuesta NTP después de $times[10] microsegundos...\n\n";
+			print "Enviando respuesta QOTD después de $times[10] microsegundos...\n\n";
 			usleep($times[10]);
-			while(1)
-			{
-				if($datos ne ""){$qotdSocket->send($datos);}
+			#while(1)
+			#{
+				#if(@datos){$qotdSocket->send($datos[2]);}
+				if(@datos){$qotdSocket->send($datos[int(rand(scalar @datos))]);}
+				#if($datos ne ""){$qotdSocket->send($datos);}
 				else
 				{
   				my $indexQuote = int(rand(4));
   				$qotdSocket->send($data{$indexQuote});
 				}
-			}
+			#}
 		}
 	}
 	$qotdSocket->close();
