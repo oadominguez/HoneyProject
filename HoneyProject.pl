@@ -95,11 +95,7 @@ sub chargenServer
 			print "Enviando respuesta Chargen después de $times[10] microsegundos...\n\n";
 			usleep($times[10]);
 			while(1){$chargenSocket->send($dataSend);}
-		}
-
-
-
-		
+		}		
 	}
 	$chargenSocket->close();
 }
@@ -189,9 +185,131 @@ sub qotdServer
 	$qotdSocket->close();
 }
 
+sub snmpLogic
+{
+	my $dataHex = $_[0];
+	my $version = substr($dataHex,8,2);
+	my $snmpVersion="0201".$version; ## Concatenamos primera capa: SNMP Version
+	my $commSize = (sprintf("%d",hex(substr($dataHex,12,2)))*2);
+	my $community = substr($dataHex,14,$commSize);
+	my $snmpCommStr ="04".substr($dataHex,12,2).$community; #Concatenamos segunda capa: SNMP Community String
+	#### CONCATENAR TAMAÑO DE PDU ###
+	my $requestSize = (sprintf("%d",hex(substr($dataHex,14+$commSize+6,2)))*2); ## tamaño del requestID
+	my $requestID = substr($dataHex,14+$commSize+8,$requestSize); ## se recorre el tamaño de las capas
+	my $snmpRequest = "02".substr($dataHex,14+$commSize+6,2).$requestID;
+	my $snmpError = "020100";
+	my $snmpErrorIndex = "020100";
+	my $oidSize = (sprintf("%d",hex(substr($dataHex,22+$commSize+$requestSize+22,2)))*2); ## tamaño del oid
+	my $oid = substr($dataHex,22+$commSize+$requestSize+24,$oidSize);
+	my $snmpOid = "06".substr($dataHex,44+$commSize+$requestSize,2).$oid;
+	##### VALOR, AJUSTARLO AL ARCHIVO DE CONFIGURACION #####
+	my @arrayData=dataParser("snmp.conf");
+	my $value;
+	if($arrayData[0] ne ""){$value=$arrayData[0];}
+	else {$value = "0a0b0c0d0e0f";}
+	my $valueSize = sprintf("%02x",(length($value)/2));
+	my $snmpValue = "04".$valueSize.$value; # Respuesta de tipo octect String
+	######### CRAFTING DEL PAQUETE #####################
+	my $snmpVarBindSize=0; #Inicializamos el tamaño
+	$snmpVarBindSize = $snmpVarBindSize + (length($snmpOid)/2); ## agregamos tamaño del oid
+	$snmpVarBindSize = $snmpVarBindSize + (length($snmpValue)/2); ## agregamos tamaño del valor
+	my $snmpVarBindSizeHex = sprintf("%02x",$snmpVarBindSize);
+	my $snmpVarBind="30".$snmpVarBindSizeHex.$snmpOid.$snmpValue; ## CAPA de varbind lista
+	my $snmpVarBindListSize = 0; # inicializamos el tamaño
+	$snmpVarBindListSize = $snmpVarBindListSize + (length($snmpVarBind)/2);
+	my $snmpVarBindListSizeHex = sprintf("%02x",$snmpVarBindListSize);
+	my $snmpVarBindList = "30".$snmpVarBindListSizeHex.$snmpVarBind; ## CAPA de varbind list lista
+	my $snmpPDUSize=0; ## Inicializamos el tamaño
+	$snmpPDUSize = $snmpPDUSize + (length($snmpRequest)/2) +(length($snmpError)/2);
+	$snmpPDUSize = $snmpPDUSize + (length($snmpErrorIndex)/2) +(length($snmpVarBindList)/2);
+	my $snmpPDUSizeHex = sprintf("%02x",$snmpPDUSize);
+	my $snmpPDU = "a2".$snmpPDUSizeHex.$snmpRequest.$snmpError.$snmpErrorIndex.$snmpVarBindList; # CAPA snmp PDU lista
+	my $snmpMsgSize = 0; #Inicializamos el tamaño
+	$snmpMsgSize = $snmpMsgSize + (length($snmpVersion)/2) + (length($snmpCommStr)/2) + (length($snmpPDU)/2);
+	my $snmpMsgSizeHex = sprintf("%02x",$snmpMsgSize);
+	my $snmpMsg = "30".$snmpMsgSizeHex.$snmpVersion.$snmpCommStr.$snmpPDU; ### Paquete final construido
+	return $snmpMsg;
+}
+
+
+
+
+sub snmpServer
+{
+	my $snmpIp=$_[0];
+	my $snmpPort=161;
+	my $snmpSocket;
+	my $clientAddr;
+	my $clientPort;
+	print "Creando SNMP Socket...[+] \n";
+	my @times;
+	my %peticiones=();
+	##Lectura del archivo de configuración para obtener tarpiting
+	open(CONFIG,"snmp.conf") or die "No se pudo abrir";
+	while(<CONFIG>)
+	{
+		chomp($_);
+		if ($_ =~ m/^Tarpiting.*/g){@times=split(' ',$_);}
+	}
+	close(CONFIG);
+	$snmpSocket = IO::Socket::INET->new(LocalAddr => $snmpIp,
+																			LocalPort => $snmpPort,
+																					 Type => SOCK_DGRAM,
+																					Proto => 'udp') or die "No se pudo crear el socket SNMP $! \n";
+	print "SNMP Socket Creado...[+] \n";
+	print "Servidor SNMP a la escucha en UDP bajo puerto $snmpPort\n";
+	while(1)
+	{
+		my $dataRcv ="";
+		$snmpSocket->recv($dataRcv,2048);
+		my $dataHex = $dataRcv;
+		$dataHex =~ s/(.)/sprintf("%02x",ord($1))/eg;
+		$clientAddr = $snmpSocket->peerhost();
+		$clientPort = $snmpSocket->peerport();
+		$peticiones{$clientAddr}++; #Aumenta peticiones por cada ip;
+		my $response = snmpLogic($dataHex);
+		my $contador=$peticiones{$clientAddr}-1;
+		if ($contador==0)
+		{
+			print "Enviando respuesta SNMP...\n\n";
+			$snmpSocket->send(pack("H*",$response));
+		}
+		elsif($contador<10)
+		{
+			print "Enviando respuesta SNMP después de $times[$contador] microsegundos...\n\n";
+			usleep($times[$contador]);
+			$snmpSocket->send(pack("H*",$response));
+		}
+		else
+		{
+			print "Enviando respuesta SNMP después de $times[10] microsegundos...\n\n";
+			usleep($times[10]);
+			$snmpSocket->send(pack("H*",$response));
+		}
+	}
+	$snmpSocket->close();
+}
+
+
+
 sub dnsLogic
 {
   my $dataHex = $_[0];
+	my $file="dns.conf";
+	my @arrayA;
+	my @arrayMX;
+	my @arrayNS;
+	if(-f $file and -r $file) 
+	{
+		open(CONFIG,$file) or die "No se pudo abrir $file \n";
+		while(<CONFIG>)
+		{
+			chomp($_);
+			if(!($_ =~ m/^#.*/g) and ($_ =~ m/^A.*/i)){@arrayA=split(' ',$_); shift(@arrayA)}
+			if(!($_ =~ m/^#.*/g) and ($_ =~ m/^MX.*/i)){@arrayMX=split(' ',$_); shift(@arrayMX)}
+			if(!($_ =~ m/^#.*/g) and ($_ =~ m/^NS.*/i)){@arrayNS=split(' ',$_); shift(@arrayNS)}
+		}
+	}
   my $ID = substr($dataHex,0,4);
   my $flags = "8580";   ### Respuesta | Autoritativa | Recursiva | No Error |
   my $numPreg = substr($dataHex,8,4);
@@ -206,7 +324,8 @@ sub dnsLogic
   if($type eq "000f") ## Si la peticion es MX
   {
     my $pref  = "0005"; #Preferencia Estandar
-    $dataRes = "smtp.seguridad.unam.mx";
+		if(@arrayMX){$dataRes=$arrayMX[0];}
+		else {$dataRes = "smtp.seguridad.unam.mx";}
     my @dataArray = split(/\./,$dataRes);
     my $dataSwap="";
     foreach my $data (@dataArray) ## Operamos segun QNAME format
@@ -223,7 +342,8 @@ sub dnsLogic
   }
   elsif($type eq "0002") ## Peticion NS
   {
-    $dataRes = "dns.seguridad.unam.mx";
+		if(@arrayNS){$dataRes=$arrayNS[0];}
+		else {$dataRes = "dns.seguridad.unam.mx";}
     my @dataArray = split(/\./,$dataRes);
     my $dataSwap="";
     foreach my $data (@dataArray) ## Se opera segun formato QNAME
@@ -240,7 +360,18 @@ sub dnsLogic
   }
  else  ## Peticion A por defecto
   {
-    $dataRes = sprintf("%02x%02x%02x%02x", rand 0xFF, rand 0xFF, rand 0xFF, rand 0xFF); #Random IP
+		if(@arrayA)
+		{
+			$dataRes=$arrayA[0];
+			my @swap = split('\.',$dataRes);
+			$dataRes="";
+			foreach(@swap)
+			{
+				my $aux=sprintf("%02x",$_);
+				$dataRes=$dataRes.$aux;
+			}
+		}
+		else {$dataRes = sprintf("%02x%02x%02x%02x", rand 0xFF, rand 0xFF, rand 0xFF, rand 0xFF);} #Random IP
     $tamRes = sprintf("%04x",(length($dataRes)/2)); ##Tomamos cada dos bytes
   }
   my $response = $ID.$flags.$numPreg.$numResp.$numRespAuth.$numRespAddit.$dataQuery;
@@ -720,6 +851,19 @@ if(@ssdpIp)
 	foreach(@ssdpIp)
 	{
 		my $hilo=threads->new(\&ssdpServer,$_);
+		push(@threads,$hilo);
+	}
+}
+
+print "Iniciando servidores SNMP \n";
+my @snmpIp = ipParser("snmp.conf");
+if(@snmpIp)
+{
+	shift(@snmpIp);
+	print "Servicio SSDP iniciara en las ip: @snmpIp \n";
+	foreach(@snmpIp)
+	{
+		my $hilo=threads->new(\&snmpServer,$_);
 		push(@threads,$hilo);
 	}
 }
