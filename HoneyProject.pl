@@ -3,6 +3,7 @@ use strict;
 use IO::Socket::INET;
 use Time::HiRes qw(gettimeofday usleep);
 use threads;
+use Term::ANSIColor;
 
 sub ipParser
 {
@@ -42,12 +43,8 @@ sub chargenServer
 	my $clientPort;
 	my $dataSend;
 	my @arrayData=dataParser("chargen.conf");
-
-
 	my @times;
 	my %peticiones=();
-
-	##Lectura del archivo de configuración para obtener tarpiting
 	open(CONFIG,"chargen.conf") or die "No se pudo abrir";
 	  while(<CONFIG>){
 			chomp($_);
@@ -56,43 +53,45 @@ sub chargenServer
 			}
 		}
 	close(CONFIG);
-
-
 	if($arrayData[0] ne ""){$dataSend=$arrayData[0];}
 	else		
 	{
 		$dataSend = '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|} ~';
 	}
 	close(CONFIG);
-	print "Creando Chargen Socket...[+]\n";
+	#print "Creando Chargen Socket...[+]\n";
 	$chargenSocket = IO::Socket::INET->new(LocalAddr => $chargenIp,
 																			 	 LocalPort => $chargenPort,
 																				 			Type => SOCK_DGRAM,
 																					 	 Proto => 'udp') or die "No se pudo crear el chargenSocket $! \n";
-	print "Chargen Socket Creado...[+]\n";
-	print "Servidor Chargen a la escucha en $chargenIp UDP bajo puerto $chargenPort\n";
+	#print "Chargen Socket Creado...[+]\n";
+	sleep(1);
+	print "  [+]...... Servidor ";
+	print color("red"), "CHARGEN", color("reset");
+	print " a la escucha en ";
+	print color("cyan"), "$chargenIp", color("reset");
+	print color("reset"), ":", color("reset");
+	print color("magenta"), "$chargenPort ", color("reset");
+	print color('reset'), "...... [+] \n";
 	while(1)
 	{
 		my $dataRcv ="";
 		$chargenSocket->recv($dataRcv,2048);
 		$clientAddr = $chargenSocket->peerhost();
 		$clientPort = $chargenSocket->peerport();
-		
 		$peticiones{$clientAddr}++; #Aumenta peticiones por cada ip;
-
-
 		my $contador=$peticiones{$clientAddr}-1;
 		if ($contador==0){
-			print "Enviando respuesta Chargen...\n\n";
+			#print "Enviando respuesta Chargen...\n\n";
 			while(1){$chargenSocket->send($dataSend);}
 		}
 		elsif($contador<10){
-			print "Enviando respuesta Chargen después de $times[$contador] microsegundos...\n\n";
+			#print "Enviando respuesta Chargen después de $times[$contador] microsegundos...\n\n";
 			usleep($times[$contador]);
 			while(1){$chargenSocket->send($dataSend);}
 		}
 		else{
-			print "Enviando respuesta Chargen después de $times[10] microsegundos...\n\n";
+			#print "Enviando respuesta Chargen después de $times[10] microsegundos...\n\n";
 			usleep($times[10]);
 			while(1){$chargenSocket->send($dataSend);}
 		}		
@@ -110,7 +109,7 @@ sub qotdServer
 	my %data = (0 => "Duerme, duerme\n", 1 => "Hola\n", 2 => "Hoy va a llover\n", 3 => "Hello\n");
 	my @datos;
 	my @arrayData = dataParser("qotd.conf");
-	if($arrayData[0] ne ""){@datos=@arrayData; print "DATOS ARRAY: @arrayData\n";}
+	if($arrayData[0] ne ""){@datos=@arrayData;}
 
 	my @times;
 	my %peticiones=();
@@ -124,16 +123,21 @@ sub qotdServer
 			}
 		}
 	close(CONFIG);
-
-
-
-	print "Creando QOTD Socket...[+] \n";
+	#print "Creando QOTD Socket...[+] \n";
 	$qotdSocket = IO::Socket::INET->new(LocalAddr => $qotdIp,
                                     	LocalPort => $qotdPort,
                                        	   Type => SOCK_DGRAM,
                                         	Proto => 'udp') or die "No se pudo crear el qotdSocket $! \n";
-	print "QOTD Socket Creado...[+] \n";
-	print "Servidor QOTD a la escucha en $qotdIp UDP bajo puerto $qotdPort\n";
+	#print "QOTD Socket Creado...[+] \n";
+	#print "Servidor QOTD a la escucha en $qotdIp UDP bajo puerto $qotdPort\n";
+	sleep(1);
+	print "  [*]...... Servidor ";
+	print color("red"), "QOTD", color("reset");
+	print " a la escucha en ";
+	print color("cyan"), "$qotdIp", color("reset");
+	print color("reset"), ":", color("reset");
+	print color("magenta"), "$qotdPort ", color("reset");
+	print color('reset'), "...... [*] \n";
 	while(1)
 	{
   	my $dataRcv ="";
@@ -143,7 +147,7 @@ sub qotdServer
 		$peticiones{$clientAddr}++; #Aumenta peticiones por cada ip;
 		my $contador=$peticiones{$clientAddr}-1;
 		if ($contador==0){
-			print "Enviando respuesta QOTD...\n\n";
+			#print "Enviando respuesta QOTD...\n\n";
 			#while(1)
 			#{
 				if(@datos){$qotdSocket->send($datos[int(rand(scalar @datos))]);}
@@ -155,7 +159,7 @@ sub qotdServer
 			#}
 		}
 		elsif($contador<10){
-			print "Enviando respuesta QOTD después de $times[$contador] microsegundos...\n\n";
+			#print "Enviando respuesta QOTD después de $times[$contador] microsegundos...\n\n";
 			usleep($times[$contador]);
 			#while(1)
 			#{
@@ -170,7 +174,7 @@ sub qotdServer
 			#}
 		}
 		else{
-			print "Enviando respuesta QOTD después de $times[10] microsegundos...\n\n";
+			#print "Enviando respuesta QOTD después de $times[10] microsegundos...\n\n";
 			usleep($times[10]);
 			#while(1)
 			#{
@@ -196,7 +200,6 @@ sub snmpLogic
 	my $commSize = (sprintf("%d",hex(substr($dataHex,12,2)))*2);
 	my $community = substr($dataHex,14,$commSize);
 	my $snmpCommStr ="04".substr($dataHex,12,2).$community; #Concatenamos segunda capa: SNMP Community String
-	#### CONCATENAR TAMAÑO DE PDU ###
 	my $requestSize = (sprintf("%d",hex(substr($dataHex,14+$commSize+6,2)))*2); ## tamaño del requestID
 	my $requestID = substr($dataHex,14+$commSize+8,$requestSize); ## se recorre el tamaño de las capas
 	my $snmpRequest = "02".substr($dataHex,14+$commSize+6,2).$requestID;
@@ -205,7 +208,6 @@ sub snmpLogic
 	my $oidSize = (sprintf("%d",hex(substr($dataHex,22+$commSize+$requestSize+22,2)))*2); ## tamaño del oid
 	my $oid = substr($dataHex,22+$commSize+$requestSize+24,$oidSize);
 	my $snmpOid = "06".substr($dataHex,44+$commSize+$requestSize,2).$oid;
-	##### VALOR, AJUSTARLO AL ARCHIVO DE CONFIGURACION #####
 	my @arrayData=dataParser("snmp.conf");
 	my $value;
 	if($arrayData[0] ne ""){$value=$arrayData[0];}
@@ -244,7 +246,7 @@ sub snmpServer
 	my $snmpSocket;
 	my $clientAddr;
 	my $clientPort;
-	print "Creando SNMP Socket...[+] \n";
+	#print "Creando SNMP Socket...[+] \n";
 	my @times;
 	my %peticiones=();
 	##Lectura del archivo de configuración para obtener tarpiting
@@ -259,8 +261,16 @@ sub snmpServer
 																			LocalPort => $snmpPort,
 																					 Type => SOCK_DGRAM,
 																					Proto => 'udp') or die "No se pudo crear el socket SNMP $! \n";
-	print "SNMP Socket Creado...[+] \n";
-	print "Servidor SNMP a la escucha en UDP bajo puerto $snmpPort\n";
+	#print "SNMP Socket Creado...[+] \n";
+	#print "Servidor SNMP a la escucha en UDP bajo puerto $snmpPort\n";
+	sleep(1);
+	print "  [#]...... Servidor ";
+	print color("red"), "SNMP", color("reset");
+	print " a la escucha en ";
+	print color("cyan"), "$snmpIp", color("reset");
+	print color("reset"), ":", color("reset");
+	print color("magenta"), "$snmpPort ", color("reset");
+	print color('reset'), "...... [#] \n";
 	while(1)
 	{
 		my $dataRcv ="";
@@ -274,18 +284,18 @@ sub snmpServer
 		my $contador=$peticiones{$clientAddr}-1;
 		if ($contador==0)
 		{
-			print "Enviando respuesta SNMP...\n\n";
+			#print "Enviando respuesta SNMP...\n\n";
 			$snmpSocket->send(pack("H*",$response));
 		}
 		elsif($contador<10)
 		{
-			print "Enviando respuesta SNMP después de $times[$contador] microsegundos...\n\n";
+			#print "Enviando respuesta SNMP después de $times[$contador] microsegundos...\n\n";
 			usleep($times[$contador]);
 			$snmpSocket->send(pack("H*",$response));
 		}
 		else
 		{
-			print "Enviando respuesta SNMP después de $times[10] microsegundos...\n\n";
+			#print "Enviando respuesta SNMP después de $times[10] microsegundos...\n\n";
 			usleep($times[10]);
 			$snmpSocket->send(pack("H*",$response));
 		}
@@ -407,16 +417,21 @@ sub dnsServer
 			}
 		}
 	close(CONFIG);
-
-
-
-	print "Creando DNS Socket...[+] \n";
+	#print "Creando DNS Socket...[+] \n";
 	$dnsSocket = IO::Socket::INET->new(LocalAddr => $dnsIp,
                                    	 LocalPort => $dnsPort,
                                      	    Type => SOCK_DGRAM,
                                        	 Proto => 'udp') or die "No se pudo crear el DNS socket $! \n";
-	print "DNS Socket Creado...[+] \n";
-	print "Servidor DNS a la escucha en $dnsIp UDP bajo puerto $dnsPort\n";
+	#print "DNS Socket Creado...[+] \n";
+	#print "Servidor DNS a la escucha en $dnsIp UDP bajo puerto $dnsPort\n";
+	sleep(1);
+	print "  [\$]...... Servidor ";
+	print color("red"), "DNS", color("reset");
+	print " a la escucha en ";
+	print color("cyan"), "$dnsIp", color("reset");
+	print color("reset"), ":", color("reset");
+	print color("magenta"), "$dnsPort ", color("reset");
+	print color('reset'), "...... [\$] \n";
 	while(1)
 	{
   	my $dataRcv ="";
@@ -431,16 +446,16 @@ sub dnsServer
 
 		my $contador=$peticiones{$clientAddr}-1;
 		if ($contador==0){
-			print "Enviando respuesta DNS...\n\n";
+			#print "Enviando respuesta DNS...\n\n";
 			$dnsSocket->send(pack("H*",$response));
 		}
 		elsif($contador<10){
-			print "Enviando respuesta DNS después de $times[$contador] microsegundos...\n\n";
+			#print "Enviando respuesta DNS después de $times[$contador] microsegundos...\n\n";
 			usleep($times[$contador]);
 			$dnsSocket->send(pack("H*",$response));
 		}
 		else{
-			print "Enviando respuesta DNS después de $times[10] microsegundos...\n\n";
+			#print "Enviando respuesta DNS después de $times[10] microsegundos...\n\n";
 			usleep($times[10]);
 			$dnsSocket->send(pack("H*",$response));
 		}
@@ -525,7 +540,7 @@ sub ntpServer{
 	my $clientAddr;
 	my @times;
 	my %peticiones=();
-	print "ntpIP $ntpIP\n";
+	#print "ntpIP $ntpIP\n";
 	##Lectura del archivo de configuración para obtener tarpiting
 	open(CONFIG,"ntp.conf") or die "No se pudo abrir";
 	  while(<CONFIG>){
@@ -535,14 +550,22 @@ sub ntpServer{
 			}
 		}
 	close(CONFIG);
-
-		print "Creando UDP Socket...[+] \n";
+	#print "Creando UDP Socket...[+] \n";
 	# Creamos el Socket
-	$ntpSocket = IO::Socket::INET->new(LocalPort => $ntpPort,LocalAddr =>$ntpIP,Type => SOCK_DGRAM,Proto => 'udp') or die "No se pudo crear el socket UDP $! \n";
-
-
-	print "UDP Socket Creado...[+] \n";
-	print "Servidor a la escucha en UDP bajo puerto $ntpPort\n";
+	$ntpSocket = IO::Socket::INET->new(LocalPort => $ntpPort,
+																		 LocalAddr => $ntpIP,
+																		 			Type => SOCK_DGRAM,
+																				 Proto => 'udp') or die "No se pudo crear el socket NTP $! \n";
+	#print "UDP Socket Creado...[+] \n";
+	#print "Servidor a la escucha en UDP bajo puerto $ntpPort\n";
+	sleep(1);
+	print "  [&]...... Servidor ";
+	print color("red"), "NTP", color("reset");
+	print " a la escucha en ";
+	print color("cyan"), "$ntpIP", color("reset");
+	print color("reset"), ":", color("reset");
+	print color("magenta"), "$ntpPort ", color("reset");
+	print color('reset'), "...... [&] \n";
 	while(1)
 	{	
 		my $ntpRespond="";
@@ -555,16 +578,16 @@ sub ntpServer{
 
 		my $contador=$peticiones{$clientAddr}-1;
 		if ($contador==0){
-			print "Enviando respuesta NTP...\n\n";
+			#print "Enviando respuesta NTP...\n\n";
 			$ntpSocket->send(pack("H*",$ntpRespond));
 		}
 		elsif($contador<10){
-			print "Enviando respuesta NTP después de $times[$contador] microsegundos...\n\n";
+			#print "Enviando respuesta NTP después de $times[$contador] microsegundos...\n\n";
 			usleep($times[$contador]);
 			$ntpSocket->send(pack("H*",$ntpRespond));
 		}
 		else{
-			print "Enviando respuesta NTP después de $times[10] microsegundos...\n\n";
+			#print "Enviando respuesta NTP después de $times[10] microsegundos...\n\n";
 			usleep($times[10]);
 			$ntpSocket->send(pack("H*",$ntpRespond));
 		}
@@ -642,15 +665,22 @@ sub netbiosServer{
 		}
 	close(CONFIG);
 	#print "$nombreEquipo\n@times\n";
-	print "Creando UDP Socket...[+] \n";
+	#print "Creando UDP Socket...[+] \n";
 	# Creamos el Socket
 	$nbSocket = IO::Socket::INET->new(LocalPort => $nbPort,
 																		Type => SOCK_DGRAM,
 																		LocalAddr => $nbIP,
-																		Proto => 'udp') or die "No se pudo crear el socket UDP $! \n";
-	print "UDP Socket Creado...[+] \n";
-	print "Servidor a la escucha en UDP bajo puerto $nbPort\n";
-
+																		Proto => 'udp') or die "No se pudo crear el socket NETBIOS $! \n";
+	#print "UDP Socket Creado...[+] \n";
+	#print "Servidor a la escucha en UDP bajo puerto $nbPort\n";
+	sleep(1);
+	print "  [^]...... Servidor ";
+	print color("red"), "NETBIOS", color("reset");
+	print " a la escucha en ";
+	print color("cyan"), "$nbIP", color("reset");
+	print color("reset"), ":", color("reset");
+	print color("magenta"), "$nbPort ", color("reset");
+	print color('reset'), "...... [^] \n";
 	while(1)
 	{
 		my $dataRcv ="";
@@ -664,16 +694,16 @@ sub netbiosServer{
 
 		my $netbiosData=netbiosLogic($dataHex,$nombreEquipo);
 		if ($peticiones{$clientAddr}==0){
-			print "Enviando respuesta...\n\n";
+			#print "Enviando respuesta...\n\n";
 			$nbSocket->send(pack("H*",$netbiosData));
 		}
 		elsif($peticiones{$clientAddr}<10){
-			print "Enviando respuesta despues de $times[$peticiones{$clientAddr}] microsegundos...\n\n";
+			#print "Enviando respuesta despues de $times[$peticiones{$clientAddr}] microsegundos...\n\n";
 			usleep($times[$peticiones{$clientAddr}]);
 			$nbSocket->send(pack("H*",$netbiosData));
 		}
 		else{
-			print "Enviando respuesta despues de $times[10] microsegundos...\n\n";
+			#print "Enviando respuesta despues de $times[10] microsegundos...\n\n";
 			usleep($times[10]);
 			$nbSocket->send(pack("H*",$netbiosData));
 		}
@@ -742,14 +772,22 @@ sub ssdpServer{
 	close(CONFIG);
 
 
-	print "Creando UDP Socket...[+] \n";
+	#print "Creando UDP Socket...[+] \n";
 	# Creamos el Socket
 	$ssdpSocket = IO::Socket::INET->new(LocalPort => $ssdpPort,
 																			Type => SOCK_DGRAM,
 																			LocalAddr => $ssdpIP,
-																			Proto => 'udp') or die "No se pudo crear el socket UDP $! \n";
-	print "UDP Socket Creado...[+] \n";
-	print "Servidor a la escucha en UDP bajo puerto $ssdpPort\n";
+																			Proto => 'udp') or die "No se pudo crear el socket SSDP $! \n";
+	#print "UDP Socket Creado...[+] \n";
+	#print "Servidor a la escucha en UDP bajo puerto $ssdpPort\n";
+	sleep(1);
+	print "  [>]...... Servidor ";
+	print color("red"), "SSDP", color("reset");
+	print " a la escucha en ";
+	print color("cyan"), "$ssdpIP", color("reset");
+	print color("reset"), ":", color("reset");
+	print color("magenta"), "$ssdpPort ", color("reset");
+	print color('reset'), "...... [<] \n";
 	while(1)
 	{
 		my $dataRcv ="";
@@ -762,16 +800,16 @@ sub ssdpServer{
 		$ssdpData=ssdpLogic();
 		my $contador=$peticiones{$clientAddr}-1;
 		if ($contador==0){
-			print "Enviando respuesta SSDP...\n\n";
+			#print "Enviando respuesta SSDP...\n\n";
 			$ssdpSocket->send($ssdpData);
 		}
 		elsif($contador<10){
-			print "Enviando respuesta SSDP después de $times[$contador] microsegundos...\n\n";
+			#print "Enviando respuesta SSDP después de $times[$contador] microsegundos...\n\n";
 			usleep($times[$contador]);
 						$ssdpSocket->send($ssdpData);
 		}
 		else{
-			print "Enviando respuesta SSDP después de $times[10] microsegundos...\n\n";
+			#print "Enviando respuesta SSDP después de $times[10] microsegundos...\n\n";
 			usleep($times[10]);
 						$ssdpSocket->send($ssdpData);
 		}
@@ -782,36 +820,39 @@ sub ssdpServer{
 
 
 my @threads;
-print "Iniciando servidores CHARGEN\n";
+print "Iniciando servidores ";
+print color("blue"), "CHARGEN\n", color("reset");
 my @chargenIp = ipParser("chargen.conf");
 if(@chargenIp)
 {
 	shift(@chargenIp);
-	print "Servicio CHARGEN iniciara en las ip: @chargenIp \n";
+	#print "Servicio CHARGEN iniciara en las ip: @chargenIp \n";
 	foreach(@chargenIp)
 	{
 		my $hilo=threads->new(\&chargenServer,$_);
 		push(@threads,$hilo);
 	}
 }
-print "Iniciando servidores QOTD \n";
+print "Iniciando servidores ";
+print color("red"), "QOTD\n", color("reset");
 my @qotdIp = ipParser("qotd.conf");
 if(@qotdIp)
 {
 	shift(@qotdIp);
-	print "Servicio QOTD iniciara en las ip: @qotdIp \n";
+	#print "Servicio QOTD iniciara en las ip: @qotdIp \n";
 	foreach(@qotdIp)
 	{
 		my $hilo=threads->new(\&qotdServer,$_);
 		push(@threads,$hilo);
 	}
 }
-print "Iniciando servidores DNS \n";
+print "Iniciando servidores ";
+print color("blue"), "DNS\n", color("reset");
 my @dnsIp = ipParser("dns.conf");
 if(@dnsIp)
 {
 	shift(@dnsIp);
-	print "Servicio DNS  iniciara en las ip: @dnsIp \n";
+	#print "Servicio DNS  iniciara en las ip: @dnsIp \n";
 	foreach(@dnsIp)
 	{
 		my $hilo=threads->new(\&dnsServer,$_);
@@ -819,12 +860,13 @@ if(@dnsIp)
 	}
 }
 
-print "Iniciando servidores NTP \n";
+print "Iniciando servidores ";
+print color("red"), "NTP\n", color("reset");
 my @ntpIp = ipParser("ntp.conf");
 if(@ntpIp)
 {
 	shift(@ntpIp);
-	print "Servicio NTP iniciara en las ip: @ntpIp \n";
+	#print "Servicio NTP iniciara en las ip: @ntpIp \n";
 	foreach(@ntpIp)
 	{
 		my $hilo=threads->new(\&ntpServer,$_);
@@ -832,12 +874,13 @@ if(@ntpIp)
 	}
 }
 
-print "Iniciando servidores NETBIOS \n";
+print "Iniciando servidores ";
+print color("blue"), "NETBIOS\n", color("reset");
 my @netbiosIp = ipParser("netbios.conf");
 if(@netbiosIp)
 {
 	shift(@netbiosIp);
-	print "Servicio NETBIOS iniciara en las ip: @netbiosIp \n";
+	#print "Servicio NETBIOS iniciara en las ip: @netbiosIp \n";
 	foreach(@netbiosIp)
 	{
 		my $hilo=threads->new(\&netbiosServer,$_);
@@ -845,12 +888,13 @@ if(@netbiosIp)
 	}
 }
 
-print "Iniciando servidores SSDP \n";
+print "Iniciando servidores ";
+print color("red"), "SSDP\n", color("reset");
 my @ssdpIp = ipParser("ssdp.conf");
 if(@ssdpIp)
 {
 	shift(@ssdpIp);
-	print "Servicio SSDP iniciara en las ip: @ssdpIp \n";
+	#print "Servicio SSDP iniciara en las ip: @ssdpIp \n";
 	foreach(@ssdpIp)
 	{
 		my $hilo=threads->new(\&ssdpServer,$_);
@@ -858,12 +902,13 @@ if(@ssdpIp)
 	}
 }
 
-print "Iniciando servidores SNMP \n";
+print "Iniciando servidores ";
+print color("blue"), "SNMP\n", color("reset");
 my @snmpIp = ipParser("snmp.conf");
 if(@snmpIp)
 {
 	shift(@snmpIp);
-	print "Servicio SSDP iniciara en las ip: @snmpIp \n";
+	#print "Servicio SSDP iniciara en las ip: @snmpIp \n";
 	foreach(@snmpIp)
 	{
 		my $hilo=threads->new(\&snmpServer,$_);
