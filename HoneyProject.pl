@@ -312,6 +312,7 @@ sub dnsLogic
 	my @arrayA;
 	my @arrayMX;
 	my @arrayNS;
+	my @arrayPTR;
 	if(-f $file and -r $file) 
 	{
 		open(CONFIG,$file) or die "No se pudo abrir $file \n";
@@ -321,6 +322,7 @@ sub dnsLogic
 			if(!($_ =~ m/^#.*/g) and ($_ =~ m/^A.*/i)){@arrayA=split(' ',$_); shift(@arrayA)}
 			if(!($_ =~ m/^#.*/g) and ($_ =~ m/^MX.*/i)){@arrayMX=split(' ',$_); shift(@arrayMX)}
 			if(!($_ =~ m/^#.*/g) and ($_ =~ m/^NS.*/i)){@arrayNS=split(' ',$_); shift(@arrayNS)}
+			if(!($_ =~ m/^#.*/g) and ($_ =~ m/^PTR.*/i)){@arrayNS=split(' ',$_); shift(@arrayPTR)}
 		}
 	}
   my $ID = substr($dataHex,0,4);
@@ -369,6 +371,24 @@ sub dnsLogic
     }
     $tamRes=sprintf("%04x",(length($dataRes)+3)); # + 2 tail
     my $tail = "c00c"; 
+    $dataRes = $dataSwap.$tail;
+  }
+  elsif($type eq "000c") ## Peticion PTR
+  {
+		if(@arrayPTR){$dataRes=$arrayPTR[0];}
+		else {$dataRes = "reverse.seguridad.unam.mx";}
+    my @dataArray = split(/\./,$dataRes);
+    my $dataSwap="";
+    foreach my $data (@dataArray) ## Se opera segun formato QNAME
+    {
+      my $tamFrag=sprintf("%02x",length($data));
+      $dataSwap=$dataSwap.$tamFrag;
+      my $dataHex = $data;
+      $dataHex =~ s/(.)/sprintf("%02x",ord($1))/eg;
+      $dataSwap=$dataSwap.$dataHex;
+    }
+    $tamRes=sprintf("%04x",(length($dataRes)+2)); # + 2 tail
+    my $tail = "00"; 
     $dataRes = $dataSwap.$tail;
   }
  else  ## Peticion A por defecto
